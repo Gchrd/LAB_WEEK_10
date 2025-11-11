@@ -53,4 +53,7 @@ dependencies {
     implementation ("androidx.room:room-runtime:$roomVersion")
     implementation ("androidx.room:room-ktx:$roomVersion")
     kapt ("androidx.room:room-compiler:$roomVersion")
+    
+    // Gson for type converters
+    implementation("com.google.code.gson:gson:2.10.1")
 }

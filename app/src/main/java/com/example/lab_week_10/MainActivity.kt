@@ -1,32 +1,40 @@
 package com.example.lab_week_10
-
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
+import com.example.lab_week_10.database.Total
 import com.example.lab_week_10.database.TotalDatabase
-import com.example.lab_week_10.repositories.TotalRepository
+import com.example.lab_week_10.database.TotalObject
 import com.example.lab_week_10.viewmodels.TotalViewModel
-import com.example.lab_week_10.viewmodels.TotalViewModelFactory
+import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
-    // Create an instance of the TotalViewModel
-    // by lazy is used to create the ViewModel only when it's needed
+    private val db by lazy { prepareDatabase() }
+
     private val viewModel by lazy {
-        val database = TotalDatabase.getDatabase(this)
-        val repository = TotalRepository(database.totalDao())
-        val factory = TotalViewModelFactory(repository)
-        ViewModelProvider(this, factory)[TotalViewModel::class.java]
+        ViewModelProvider(this)[TotalViewModel::class.java]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Prepare the ViewModel
+        initializeValueFromDatabase()
         prepareViewModel()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Tampilkan date terakhir via toast
+        val list = db.totalDao().getTotal(ID)
+        if (list.isNotEmpty()) {
+            Toast.makeText(this, list.first().total.date, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun updateText(total: Int) {
@@ -34,16 +42,50 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.text_total, total)
     }
 
-    private fun prepareViewModel() {
-        // Observe the LiveData object
-        viewModel.total.observe(this) {
-            // Whenever the value of the LiveData object changes
-            // the updateText() is called, with the new value as the parameter
-            updateText(it)
+    private fun prepareViewModel(){
+        viewModel.total.observe(this) { total ->
+            updateText(total)
         }
-
         findViewById<Button>(R.id.button_increment).setOnClickListener {
             viewModel.incrementTotal()
         }
+    }
+
+    private fun prepareDatabase(): TotalDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            TotalDatabase::class.java,
+            "total-database"
+        ).allowMainThreadQueries().build()
+    }
+
+    private fun initializeValueFromDatabase() {
+        val list = db.totalDao().getTotal(ID)
+        if (list.isEmpty()) {
+            db.totalDao().insert(
+                Total(
+                    id = ID,
+                    total = TotalObject(value = 0, date = Date().toString())
+                )
+            )
+            viewModel.setTotal(0)
+        } else {
+            viewModel.setTotal(list.first().total.value)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val current = viewModel.total.value ?: 0
+        db.totalDao().update(
+            Total(
+                id = ID,
+                total = TotalObject(value = current, date = Date().toString())
+            )
+        )
+    }
+
+    companion object {
+        const val ID: Long = 1L
     }
 }

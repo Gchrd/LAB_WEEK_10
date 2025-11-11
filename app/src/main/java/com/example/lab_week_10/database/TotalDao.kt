@@ -16,21 +16,17 @@ interface TotalDao {
     // OnConflictStrategy.REPLACE is used to replace existing row 
     // if the id of the inserted row already exists in the database 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(total: Total)
+    fun insert(total: Total)
 
     // @Update is used to update an existing row 
     @Update
-    suspend fun update(total: Total)
+    fun update(total: Total)
 
     // @Delete is used to delete an existing row 
     @Delete
-    suspend fun delete(total: Total)
+    fun delete(total: Total)
 
     // @Query is used to define a custom query, usually to select rows
     @Query("SELECT * FROM total WHERE id = :id")
-    suspend fun getTotal(id: Long): Total?
-    
-    // Get the first total (for single row database)
-    @Query("SELECT * FROM total LIMIT 1")
-    suspend fun getFirstTotal(): Total?
+    fun getTotal(id: Long): List<Total>
 }
