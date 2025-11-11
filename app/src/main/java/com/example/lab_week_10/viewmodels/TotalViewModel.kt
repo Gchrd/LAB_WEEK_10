@@ -1,25 +1,45 @@
 package com.example.lab_week_10.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.lab_week_10.database.Total
+import com.example.lab_week_10.repositories.TotalRepository
+import kotlinx.coroutines.launch
 
-class TotalViewModel: ViewModel() {
-    //Declare the LiveData object
+class TotalViewModel(private val repository: TotalRepository) : ViewModel() {
     private val _total = MutableLiveData<Int>()
     val total: LiveData<Int> = _total
+    
+    private var currentId: Long = 1L
 
-    //Initialize the LiveData object
     init {
-        //postValue is used to set the value of the LiveData object
-        //from a background thread or the main thread
-        //While on the other hand setValue() is used
-        //only if you're on the main thread
-        _total.postValue(0)
+        viewModelScope.launch {
+            val totalFromDb = repository.getTotal()
+            if (totalFromDb != null) {
+                currentId = totalFromDb.id
+                _total.postValue(totalFromDb.total)
+                Log.d("TotalViewModel", "✅ Data loaded from DB - ID: ${totalFromDb.id}, Total: ${totalFromDb.total}")
+            } else {
+                val newTotal = Total(id = 1L, total = 0)
+                repository.insert(newTotal)
+                currentId = 1L
+                _total.postValue(0)
+                Log.d("TotalViewModel", "📝 New data created - ID: 1, Total: 0")
+            }
+        }
     }
 
-    //Increment the total value
     fun incrementTotal() {
-        _total.postValue(_total.value?.plus(1))
+        viewModelScope.launch {
+            val currentTotal = _total.value ?: 0
+            val newTotal = currentTotal + 1
+            // Use the stored ID
+            repository.update(Total(id = currentId, total = newTotal))
+            _total.postValue(newTotal)
+            Log.d("TotalViewModel", "➕ Data updated - ID: $currentId, Total: $newTotal")
+        }
     }
 }
