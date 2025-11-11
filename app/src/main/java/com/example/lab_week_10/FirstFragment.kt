@@ -34,14 +34,17 @@ class FirstFragment : Fragment() {
     }
 
     private fun prepareViewModel(){
-        viewModel.total.observe(viewLifecycleOwner) { total ->
-            updateText(total)
-        }
+        val viewModel =
 
-        view?.findViewById<Button>(R.id.button_increment)?.setOnClickListener {
-            viewModel.incrementTotal()
-        }
+            ViewModelProvider(requireActivity()).get(TotalViewModel::class.java)
+        // Observe the LiveData object
+        viewModel.total.observe(viewLifecycleOwner, {
+            // Whenever the value of the LiveData object changes
+            // the updateText() is called, with the new value as the parameter
+            updateText(it)
+        })
     }
+
 
     companion object {
         @JvmStatic
